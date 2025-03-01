@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoteWise - Democratic Decision Making</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .voting-option:hover {
+            transform: translateY(-2px);
+            transition: transform 0.2s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Login Section -->
+    <div id="loginSection" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+            <h2 class="text-2xl font-bold mb-6 text-center text-blue-600">VoteWise Login</h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white rounded-md py-2 hover:bg-blue-700 transition">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="hidden min-h-screen bg-gray-100">
+        <nav class="bg-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <span class="text-xl font-bold text-blue-600">VoteWise</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span id="userDisplay" class="mr-4 text-gray-600"></span>
+                        <button onclick="logout()" class="text-gray-600 hover:text-gray-900">
+                            <i class="bi bi-box-arrow-right text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="max-w-7xl mx-auto py-6 px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Create Election Card -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold mb-4">Create New Election</h3>
+                    <form id="createElectionForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Election Title</label>
+                            <input type="text" id="electionTitle" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Options (comma-separated)</label>
+                            <input type="text" id="electionOptions" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Voting System</label>
+                            <select id="votingSystem" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border">
+                                <option value="plurality">Plurality</option>
+                                <option value="approval">Approval</option>
+                                <option value="score">Score Voting</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white rounded-md py-2 hover:bg-blue-700 transition">Create Election</button>
+                    </form>
+                </div>
+
+                <!-- Active Elections Card -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold mb-4">Active Elections</h3>
+                    <div id="activeElections" class="space-y-4">
+                        <!-- Elections will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Voting Modal -->
+    <div id="votingModal" class="modal hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-6 w-96">
+            <h3 id="modalTitle" class="text-lg font-semibold mb-4"></h3>
+            <div id="votingOptions" class="space-y-4">
+                <!-- Voting options will be populated here -->
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button onclick="closeVotingModal()" class="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300">Cancel</button>
+                <button onclick="submitVote()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Submit Vote</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simulated data storage
+        let currentUser = null;
+        let elections = [];
+        let currentVotingElection = null;
+
+        // Login functionality
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Simple validation (in real app, this would be handled by the backend)
+            if (username && password) {
+                currentUser = username;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                document.getElementById('userDisplay').textContent = username;
+            }
+        });
+
+        // Create election functionality
+        document.getElementById('createElectionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('electionTitle').value;
+            const options = document.getElementById('electionOptions').value.split(',').map(opt => opt.trim());
+            const system = document.getElementById('votingSystem').value;
+
+            const election = {
+                id: Date.now(),
+                title,
+                options,
+                system,
+                votes: {},
+                creator: currentUser
+            };
+
+            elections.push(election);
+            updateActiveElections();
+            this.reset();
+        });
+
+        function updateActiveElections() {
+            const container = document.getElementById('activeElections');
+            container.innerHTML = '';
+
+            elections.forEach(election => {
+                const electionElement = document.createElement('div');
+                electionElement.className = 'voting-option bg-gray-50 p-4 rounded-lg hover:shadow-md';
+                electionElement.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h4 class="font-medium">${election.title}</h4>
+                            <p class="text-sm text-gray-600">System: ${election.system}</p>
+                        </div>
+                        <button onclick="openVotingModal(${election.id})" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                            Vote
+                        </button>
+                    </div>
+                `;
+                container.appendChild(electionElement);
+            });
+        }
+
+        function openVotingModal(electionId) {
+            currentVotingElection = elections.find(e => e.id === electionId);
+            const modal = document.getElementById('votingModal');
+            const title = document.getElementById('modalTitle');
+            const options = document.getElementById('votingOptions');
+
+            title.textContent = currentVotingElection.title;
+            options.innerHTML = '';
+
+            currentVotingElection.options.forEach(option => {
+                const optionElement = document.createElement('div');
+                if (currentVotingElection.system === 'score') {
+                    optionElement.innerHTML = `
+                        <label class="block">
+                            <span class="text-gray-700">${option}</span>
+                            <input type="number" min="0" max="10" value="5" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" 
+                                   name="vote_${option}">
+                        </label>
+                    `;
+                } else {
+                    optionElement.innerHTML = `
+                        <label class="block">
+                            <input type="${currentVotingElection.system === 'plurality' ? 'radio' : 'checkbox'}" 
+                                   name="vote" value="${option}">
+                            <span class="ml-2">${option}</span>
+                        </label>
+                    `;
+                }
+                options.appendChild(optionElement);
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeVotingModal() {
+            document.getElementById('votingModal').classList.add('hidden');
+            currentVotingElection = null;
+        }
+
+        function submitVote() {
+            if (!currentVotingElection) return;
+
+            const votes = currentVotingElection.system === 'score'
+                ? Object.fromEntries(
+                    currentVotingElection.options.map(option => [
+                        option,
+                        document.querySelector(`input[name="vote_${option}"]`).value
+                    ])
+                )
+                : Array.from(document.querySelectorAll('input[name="vote"]:checked'))
+                    .map(input => input.value);
+
+            currentVotingElection.votes[currentUser] = votes;
+            closeVotingModal();
+            alert('Vote submitted successfully!');
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('loginForm').reset();
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
